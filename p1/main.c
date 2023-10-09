@@ -4,15 +4,16 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <ncurses.h>
 
-typedef enum {
-    SCREEN_HOME,
-    SCREEN_T19,
-    SCREEN_T22,
-    SCREEN_T25,
-    SCREEN_T28,
-    SCREEN_T3
+typedef enum : unsigned {
+    SCREEN_HOME = 255,
+    SCREEN_T19 = 19,
+    SCREEN_T22 = 22,
+    SCREEN_T25 = 25,
+    SCREEN_T28 = 28,
+    SCREEN_T3 = 3
 } Screens;
 
 static Screens gScreen = SCREEN_HOME;
@@ -31,14 +32,18 @@ static bool t19(float a, float b, float c, float d)
 #define width (stdscr->_maxx)
 #define height (stdscr->_maxy)
 
-static void homeScreen(void) {
+static void drawScreen(void (*screen)(void)) {
     clear();
     box(stdscr, '|', '-');
     refresh();
 
+    (*screen)();
+}
+
+static void homeScreen(void) {
     const char* title = "Enter task number or q to exit";
 
-    gCursorX = width / 2 - strnlen(title, 0xff) / 2;
+    gCursorX = width / 2 - strlen(title) / 2;
     gCursorY = height / 2 - 1;
 
     move(gCursorY, gCursorX);
@@ -47,14 +52,24 @@ static void homeScreen(void) {
     refresh();
 }
 
+static void t19Screen(void) {
+
+}
+
+static void errorScreen(void) {
+    const char* title = "An error has occurred, press q to exit";
+    mvprintw(height / 2 - 1, width / 2 - strlen(title) / 2, "%s", title);
+    refresh();
+}
+
 static void draw(void) { switch (gScreen) {
-    case SCREEN_HOME: homeScreen(); break;
-    case SCREEN_T19: break;
+    case SCREEN_HOME: drawScreen(&homeScreen); break;
+    case SCREEN_T19: drawScreen(&t19Screen); break;
     case SCREEN_T22: break;
     case SCREEN_T25: break;
     case SCREEN_T28: break;
     case SCREEN_T3: break;
-    default: abort(); break;
+    default: drawScreen(&errorScreen); break;
 } }
 
 int main(void) {
@@ -65,17 +80,17 @@ int main(void) {
     do {
         draw();
 
-        if ((input = wgetch(stdscr)) == KEY_BACKSPACE || input == 127) {
-//            memset(gBuffer, 0, gBufferSize);
+        if ((input = getch()) == 127)
             gBuffer[gBufferPosition ? gBufferPosition-- : 0] = 0;
-//            move(gCursorY, gCursorX);
-//            refresh();
-//            memmove(gBuffer, gBuffer, gBufferPosition ? --gBufferPosition : 0);
-        } else if (input >= '0' && input <= '9' || input >= 'a' && input <= 'z')
+        else if (input == '\n')
+            gScreen = (Screens) atoi(gBuffer);
+        else if (input >= '0' && input <= '9' || input >= 'a' && input <= 'z')
             gBuffer[gBufferPosition < gBufferSize ? gBufferPosition++ : gBufferPosition] = (char) input;
+        else
+            abort();
 
     } while (input != 'q');
 
     endwin();
-    return EXIT_SUCCESS; // 19, 22, 25, 28, 3
+    return EXIT_SUCCESS;
 }
