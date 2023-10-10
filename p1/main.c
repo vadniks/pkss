@@ -22,6 +22,8 @@ static void** nullable t22(float a, float b, float c, float d) {
 
     void** result = SDL_malloc(2 * sizeof(void*));
     result[0] = values2;
+
+    result[1] = SDL_malloc(sizeof(int));
     *((int*) result[1]) = size;
 
     return result;
@@ -60,6 +62,9 @@ static const int TEXT_HEIGHT = 25, BUTTON_INNER_MARGIN = 5, BUTTON_SIZE = TEXT_H
 
 static float t19Values[4] = {0};
 static int t19Field = 0;
+
+static float t22Values[4] = {0};
+static int t22Field = 0;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -159,18 +164,18 @@ static void drawMainPage(void) {
         drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
-static void drawT19(void) {
-    drawCenteredXText(10, "Task 19", colorWhite());
+static void drawFourFieldsAndButton(const char* title, int* chosenField, float* values) {
+    drawCenteredXText(10, title, colorWhite());
     drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
 
-    if (t19Field >= 0 && t19Field < 4)
-        t19Values[t19Field] = (float) SDL_atof(gBuffer);
+    if (*chosenField >= 0 && *chosenField < 4)
+        values[*chosenField] = (float) SDL_atof(gBuffer);
 
     for (int i = 1; i <= 4; i++) {
         const int valueTextSize = 1 << 5;
         char valueText[valueTextSize] = {0};
-        SDL_snprintf(valueText, valueTextSize, "Value %c: %f", 'A' + i - 1, t19Values[i - 1]);
-        drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, t19Field == i - 1 ? colorWhite() : colorGray());
+        SDL_snprintf(valueText, valueTextSize, "Value %c: %f", 'A' + i - 1, values[i - 1]);
+        drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, *chosenField == i - 1 ? colorWhite() : colorGray());
     }
 
     const int buttonWidth = 80;
@@ -182,21 +187,56 @@ static void drawT19(void) {
     drawButton(buttonRect, "Next", withinButton ? colorWhite() : colorGray());
 
     if (gMouseClicked && withinButton) {
-        t19Field < 4 ? t19Field++ : (t19Field = 0);
+        *chosenField < 4 ? (*chosenField)++ : (*chosenField = 0);
         clearBuffer();
         gMouseClicked = false;
     }
+}
 
+static void drawT19Page(void) {
+    drawFourFieldsAndButton("Task 19", &t19Field, t19Values);
     const int resultTextSize = 1 << 5;
-    char* resultText = SDL_malloc(resultTextSize);
+    char* resultText = SDL_calloc(resultTextSize, 1);
 
     if (t19Field == 4)
         SDL_snprintf(resultText, resultTextSize, "Result: %s",
-             t19(t19Values[0], t19Values[1], t19Values[2], t19Values[3]) ? "true" : "false");
+            t19(t19Values[0], t19Values[1], t19Values[2], t19Values[3]) ? "true" : "false");
     else
         SDL_memcpy(resultText, "Result: waiting for input...", resultTextSize);
 
     drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t19Field == 4 ? colorWhite() : colorGray());
+    SDL_free(resultText);
+}
+
+static void drawT22Page(void) {
+    drawFourFieldsAndButton("Task 22", &t22Field, t22Values);
+    const int resultTextSize = 255;
+    char* resultText = SDL_calloc(resultTextSize, 1);
+
+    if (t22Field == 4) {
+        void** result = t22(t22Values[0], t22Values[1], t22Values[2], t22Values[3]);
+        float* resultArray = result[0];
+        const int resultSize = *((int*) result[1]);
+
+        int offset = 0;
+
+        for (int i = 0; i < resultSize; i++) {
+            const int numberSize = 6;
+            char number[numberSize] = {0};
+
+            const int length = SDL_snprintf(number, numberSize, "%1.2f,", resultArray[i]);
+            SDL_memcpy(resultText + offset, number, numberSize);
+
+            offset += length;
+        }
+
+        SDL_free(result[1]);
+        SDL_free(resultArray);
+        SDL_free(result);
+    } else
+        SDL_memcpy(resultText, "Result: waiting for input...", 29);
+
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t22Field == 4 ? colorWhite() : colorGray());
     SDL_free(resultText);
 }
 
@@ -212,9 +252,10 @@ static void drawPage(void) {
             drawMainPage();
             break;
         case PAGE_T19:
-            drawT19();
+            drawT19Page();
             break;
         case PAGE_T22:
+            drawT22Page();
             break;
         case PAGE_T25:
             break;
