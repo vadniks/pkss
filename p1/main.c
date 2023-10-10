@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
@@ -27,6 +28,14 @@ static void** nullable t22(float a, float b, float c, float d) {
     *((int*) result[1]) = size;
 
     return result;
+}
+
+static float t25(float a, float b, float c) {
+    if (a + b <= c || a + c <= b || b + c <= a)
+        return -1;
+
+    const float s = (a + b + c) / 2.0f;
+        return sqrtf(s * (s - a) * (s - b) * (s - c));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -353,5 +362,8 @@ int main(void) {
 
     TTF_Quit();
     SDL_Quit();
+
+    if (SDL_GetNumAllocations() > 1) abort();
+
     return 0;
 }
