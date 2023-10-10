@@ -189,7 +189,15 @@ static void drawMainPage(void) {
         drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
-static void drawFieldsAndButton(int fields, const char* title, int* chosenField, float* values, char (*labelSupplier)(int)) { // TODO: add 'back' button which returns to main page
+static bool drawButtonAndCheckHover(const char* name, SDL_Rect rect) {
+    const bool withinButton = gMouseHoverX >= rect.x && gMouseHoverX <= rect.x + rect.w
+        && gMouseHoverY >= rect.y && gMouseHoverY <= rect.y + rect.h;
+
+    drawButton(rect, name, withinButton ? colorWhite() : colorGray());
+    return withinButton;
+}
+
+static void drawTemplate(int fields, const char* title, int* chosenField, float* values, char (*labelSupplier)(int)) { // TODO: add 'back' button which returns to main page
     drawCenteredXText(10, title, colorWhite());
     drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
 
@@ -204,24 +212,37 @@ static void drawFieldsAndButton(int fields, const char* title, int* chosenField,
     }
 
     const int buttonWidth = 80;
-    SDL_Rect buttonRect = {gWidth / 2 - buttonWidth / 2, gHeight - 10 * 3 - BUTTON_SIZE, buttonWidth, TEXT_HEIGHT};
+    const bool withinButtonNext = drawButtonAndCheckHover("Next", (SDL_Rect) {
+        gWidth / 4,
+        gHeight - 10 * 3 - BUTTON_SIZE,
+        buttonWidth,
+        TEXT_HEIGHT
+    });
 
-    const bool withinButton = gMouseHoverX >= buttonRect.x && gMouseHoverX <= buttonRect.x + buttonRect.w
-        && gMouseHoverY >= buttonRect.y && gMouseHoverY <= buttonRect.y + buttonRect.h;
+    const bool withinButtonBack = drawButtonAndCheckHover("Back", (SDL_Rect) {
+        gWidth - gWidth / 4 - buttonWidth,
+        gHeight - 10 * 3 - BUTTON_SIZE,
+        buttonWidth,
+        TEXT_HEIGHT
+    });
 
-    drawButton(buttonRect, "Next", withinButton ? colorWhite() : colorGray());
-
-    if (gMouseClicked && withinButton) {
+    if (gMouseClicked && withinButtonNext) {
         *chosenField < fields ? (*chosenField)++ : (*chosenField = 0);
         clearBuffer();
         gMouseClicked = false;
+    }
+
+    if (gMouseClicked && withinButtonBack) {
+        clearBuffer();
+        gMouseClicked = false;
+        gPage = PAGE_MAIN;
     }
 }
 
 static char defaultLabelSupplier(int i) { return (char) ('A' + i); }
 
 static void drawT19Page(void) {
-    drawFieldsAndButton(4, "Task 19", &t19Field, t19Values, &defaultLabelSupplier);
+    drawTemplate(4, "Task 19", &t19Field, t19Values, &defaultLabelSupplier);
     const int resultTextSize = 1 << 5;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -236,7 +257,7 @@ static void drawT19Page(void) {
 }
 
 static void drawT22Page(void) {
-    drawFieldsAndButton(4, "Task 22", &t22Field, t22Values, &defaultLabelSupplier);
+    drawTemplate(4, "Task 22", &t22Field, t22Values, &defaultLabelSupplier);
     const int resultTextSize = 255;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -279,21 +300,21 @@ static void drawSimpleFloatOutput(bool showResult, float result) {
 }
 
 static void drawT25Page(void) {
-    drawFieldsAndButton(3, "Task 25", &t25Field, t25Values, &defaultLabelSupplier);
+    drawTemplate(3, "Task 25", &t25Field, t25Values, &defaultLabelSupplier);
     drawSimpleFloatOutput(t25Field == 3, t25(t25Values[0], t25Values[1], t25Values[2]));
 }
 
 static char t28LabelSupplier(int i) { return (char) ('X' + i); }
 
 static void drawT28Page(void) {
-    drawFieldsAndButton(2, "Task 28", &t28Field, t28Values, &t28LabelSupplier);
+    drawTemplate(2, "Task 28", &t28Field, t28Values, &t28LabelSupplier);
     drawSimpleFloatOutput(t28Field == 2, t28(t28Values[0], t28Values[1]));
 }
 
 static char t3LabelSupplier(int i) { return (char) (i < 3 ? ('A' + i) : ('X' + i - 3)); }
 
 static void drawT3Page(void) {
-    drawFieldsAndButton(5, "Task 3", &t3Field, t3Values, &t3LabelSupplier);
+    drawTemplate(5, "Task 3", &t3Field, t3Values, &t3LabelSupplier);
     const bool showResult = t3Field == 5;
 
     const char* resultText = showResult
