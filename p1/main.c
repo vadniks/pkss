@@ -40,7 +40,17 @@ static bool gMouseClicked = false;
 
 static const int TEXT_HEIGHT = 25, BUTTON_INNER_MARGIN = 5, BUTTON_SIZE = TEXT_HEIGHT + BUTTON_INNER_MARGIN * 2;
 
-static char* t19Fields[4] = {NULL, NULL, NULL, NULL};
+static float t19Values[4] = {0};
+static int t19Field = 0;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+static void clearBuffer(void) {
+    gBufferPosition = 0;
+    SDL_memset(gBuffer, 0, gBufferSize);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static SDL_Texture* makeTextTexture(const char* text, SDL_Color color) {
     SDL_Surface* surface = TTF_RenderText_Solid(gFont, text, color);
@@ -104,6 +114,8 @@ static void drawButton(SDL_Rect rect, const char* text, SDL_Color color) {
     setRendererDrawColor(previousColor);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 static void drawErrorPage(void) { drawCenteredXYText("An error has occurred!", colorRed()); }
 
 static void drawMainPage(void) {
@@ -122,9 +134,10 @@ static void drawMainPage(void) {
         || gTaskNumber == PAGE_T22
         || gTaskNumber == PAGE_T25
         || gTaskNumber == PAGE_T28
-        || gTaskNumber == PAGE_T3)
+        || gTaskNumber == PAGE_T3) {
+        clearBuffer();
         gPage = (Pages) gTaskNumber;
-    else
+    } else
         drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
@@ -132,14 +145,18 @@ static void drawT19(void) {
     drawCenteredXText(10, "Task 19", colorWhite());
     drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
 
+    if (t19Field >= 0 && t19Field < 4)
+        t19Values[t19Field] = (float) SDL_atof(gBuffer);
+
     for (int i = 1; i <= 4; i++) {
-        char valueText[10] = {0};
-        SDL_snprintf(valueText, 10, "Value %c: ", 'A' + i - 1);
-        drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, colorGray());
+        const int valueTextSize = 1 << 5;
+        char valueText[valueTextSize] = {0};
+        SDL_snprintf(valueText, valueTextSize, "Value %c: %f", 'A' + i - 1, t19Values[i - 1]);
+        drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, t19Field == i - 1 ? colorWhite() : colorGray());
     }
 
-    const int buttonWidth = 100;
-    SDL_Rect buttonRect = {gWidth / 2 - buttonWidth / 2, gHeight - 10 * 3 - BUTTON_SIZE, 100, TEXT_HEIGHT};
+    const int buttonWidth = 80;
+    SDL_Rect buttonRect = {gWidth / 2 - buttonWidth / 2, gHeight - 10 * 3 - BUTTON_SIZE, buttonWidth, TEXT_HEIGHT};
 
     const bool withinButton = gMouseHoverX >= buttonRect.x && gMouseHoverX <= buttonRect.x + buttonRect.w
         && gMouseHoverY >= buttonRect.y && gMouseHoverY <= buttonRect.y + buttonRect.h;
@@ -147,11 +164,12 @@ static void drawT19(void) {
     drawButton(buttonRect, "Next", withinButton ? colorWhite() : colorGray());
 
     if (gMouseClicked && withinButton) {
-        SDL_Log("aaa");
+        t19Field < 4 ? t19Field++ : (t19Field = 0);
+        clearBuffer();
         gMouseClicked = false;
     }
 
-    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Result: ", colorGray());
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Result: ", t19Field == 4 ? colorWhite() : colorGray());
 }
 
 static void drawPage(void) {
@@ -180,6 +198,8 @@ static void drawPage(void) {
 
     SDL_RenderPresent(gRenderer);
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 static void keyPressed(const SDL_Event* event) {
     const SDL_KeyCode keyCode = event->key.keysym.sym;
