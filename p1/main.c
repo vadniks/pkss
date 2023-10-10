@@ -23,6 +23,7 @@ static unsigned gBufferPosition = 0;
 static unsigned gCursorX = 0;
 static unsigned gCursorY = 0;
 static unsigned gFieldsState = 0;
+static const unsigned gLargeBufferSize = 0xff;
 
 //static float maxf(float a, float b)
 //{ return a > b ? a : b; }
@@ -58,32 +59,39 @@ static void t19Screen(void) {
     static unsigned edit1Position, edit2Position;
 
     if (edit1Position > gBufferSize || edit2Position > gBufferSize) {
+        memset(edit1, 0, gBufferSize);
+        memset(edit2, 0, gBufferSize);
         edit1Position = 0;
         edit2Position = 0;
     }
 
-    const char* field1 = "Enter A and B in this form: 1,2";
-    const int field1Y = height / 3 - 1, field1X = width / 3 - strlen(field1) / 2;
-    mvprintw(field1Y, field1X, "%s\t%.*s", field1, edit1Position, edit1);
+    char field1[gLargeBufferSize] = { 0 };
+    const int field1Size = snprintf(field1, gLargeBufferSize, "Enter A and B (in form of 1,2): "
+                                                              "%.*s", edit1Position, edit1);
+    const int field1Y = height / 3 - 1, field1X = width / 3;
+    move(field1Y, field1X);
+    mvprintw(field1Y, field1X, "%s", field1);
     refresh();
 
-    const char* field2 = "Enter C and D in this form: 1,2";
-    const int field2Y = height - height / 3, field2X = width / 3 - strlen(field2) / 2;
-    mvprintw(field2Y, field2X, "%s\t%.*s", field2, edit2Position, edit2);
+    char field2[gLargeBufferSize] = { 0 };
+    const int field2Size = snprintf(field2, gLargeBufferSize, "Enter C and D (in form of 1,2): "
+                                                              "%.*s", edit2Position, edit2);
+    const int field2Y = height - height / 3, field2X = width / 3;
+    mvprintw(field2Y, field2X, "%s", field2);
     refresh();
 
     if (gFieldsState == 0) {
-        move(field1Y, field1X);
         memcpy(edit1, gBuffer, gBufferSize);
         edit1Position = gBufferPosition;
+        move(field1Y, field1X + field1Size);
     } else if (gFieldsState == 1) {
-        move(field2Y, field2X);
         memcpy(edit2, gBuffer, gBufferSize);
         edit2Position = gBufferPosition;
-    } else {
+        move(field2Y, field2X + field2Size);
+    } else if (gFieldsState == 2) {
+        mvprintw(height / 2 - 1, width / 3 - 3, "Result: %f", t19(1, 2, 3, 4));
+    } else
         gFieldsState = 0;
-        mvprintw(height / 2 - 1, width / 3 - 3, "%s", "aaa");
-    }
 }
 
 static void errorScreen(void) {
@@ -111,11 +119,11 @@ static void draw(void) { switch (gScreen) {
 static void enterPressed(void) {
     if (gScreen == SCREEN_HOME)
         gScreen = (Screens) atoi(gBuffer);
-    else {
+    else
         gFieldsState++;
-        memset(gBuffer, 0, gBufferSize);
-        gBufferPosition = 0;
-    }
+
+    memset(gBuffer, 0, gBufferSize);
+    gBufferPosition = 0;
 }
 
 int main(void) {
@@ -133,7 +141,7 @@ int main(void) {
         else if (input >= '0' && input <= '9' || input >= 'a' && input <= 'z')
             gBuffer[gBufferPosition < gBufferSize ? gBufferPosition++ : gBufferPosition] = (char) input;
         else
-            abort();
+            exit(input);
 
     } while (input != 'q');
 
