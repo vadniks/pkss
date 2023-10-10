@@ -7,16 +7,14 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#ifdef __clang__
-#   define nullable _Nullable
-#elif
-#   define nullable
+#ifndef __LINUX__
+#   warning "Tested only on linux"
 #endif
 
-static bool t19(float a, float b, float c, float d)
+static inline bool t19(float a, float b, float c, float d)
 { return a * b <= c * d && a <= c && b <= d; }
 
-static void** nullable t22(float a, float b, float c, float d) {
+static void** t22(float a, float b, float c, float d) {
     float values[4] = {a, b, c, d};
     float* values2 = NULL;
     int size = 0;
@@ -40,6 +38,14 @@ static float t25(float a, float b, float c) {
 
     const float s = (a + b + c) / 2.0f;
         return sqrtf(s * (s - a) * (s - b) * (s - c));
+}
+
+static inline float t28(float x, float y) { return asinf(x + y); }
+
+static inline bool t3(float a, float b, float c, float x, float y) {
+#   define cmp(aa, bb) aa < x && bb < y
+    return cmp(a, b) || cmp(b, a) || cmp(a, c) || cmp(c, a) || cmp(b, c) || cmp(c, b);
+#   undef cmp
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,6 +86,10 @@ static const int TEXT_HEIGHT = 25, BUTTON_INNER_MARGIN = 5, BUTTON_SIZE = TEXT_H
 VALUES_AND_FIELD(19, 4)
 VALUES_AND_FIELD(22, 4)
 VALUES_AND_FIELD(25, 3)
+VALUES_AND_FIELD(28, 2)
+VALUES_AND_FIELD(3, 5)
+
+const char* WAITING_FOR_INPUT = "Result: waiting for input...";
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -179,7 +189,7 @@ static void drawMainPage(void) {
         drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
-static void drawFieldsAndButton(int fields, const char* title, int* chosenField, float* values) { // TODO: add 'back' button which returns to main page
+static void drawFieldsAndButton(int fields, const char* title, int* chosenField, float* values, char (*labelSupplier)(int)) { // TODO: add 'back' button which returns to main page
     drawCenteredXText(10, title, colorWhite());
     drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
 
@@ -189,7 +199,7 @@ static void drawFieldsAndButton(int fields, const char* title, int* chosenField,
     for (int i = 1; i <= fields; i++) {
         const int valueTextSize = 1 << 5;
         char valueText[valueTextSize] = {0};
-        SDL_snprintf(valueText, valueTextSize, "Value %c: %f", 'A' + i - 1, values[i - 1]);
+        SDL_snprintf(valueText, valueTextSize, "Value %c: %f", (*labelSupplier)(i - 1), values[i - 1]);
         drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, *chosenField == i - 1 ? colorWhite() : colorGray());
     }
 
@@ -208,8 +218,10 @@ static void drawFieldsAndButton(int fields, const char* title, int* chosenField,
     }
 }
 
+static char defaultLabelSupplier(int i) { return (char) ('A' + i); }
+
 static void drawT19Page(void) {
-    drawFieldsAndButton(4, "Task 19", &t19Field, t19Values);
+    drawFieldsAndButton(4, "Task 19", &t19Field, t19Values, &defaultLabelSupplier);
     const int resultTextSize = 1 << 5;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -217,14 +229,14 @@ static void drawT19Page(void) {
         SDL_snprintf(resultText, resultTextSize, "Result: %s",
             t19(t19Values[0], t19Values[1], t19Values[2], t19Values[3]) ? "true" : "false");
     else
-        SDL_memcpy(resultText, "Result: waiting for input...", resultTextSize);
+        SDL_memcpy(resultText, WAITING_FOR_INPUT, resultTextSize);
 
     drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t19Field == 4 ? colorWhite() : colorGray());
     SDL_free(resultText);
 }
 
 static void drawT22Page(void) {
-    drawFieldsAndButton(4, "Task 22", &t22Field, t22Values);
+    drawFieldsAndButton(4, "Task 22", &t22Field, t22Values, &defaultLabelSupplier);
     const int resultTextSize = 255;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -249,19 +261,46 @@ static void drawT22Page(void) {
         SDL_free(resultArray);
         SDL_free(result);
     } else
-        SDL_memcpy(resultText, "Result: waiting for input...", 29);
+        SDL_memcpy(resultText, WAITING_FOR_INPUT, 29);
 
     drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t22Field == 4 ? colorWhite() : colorGray());
     SDL_free(resultText);
 }
 
-static void drawT25Page(void) {
-    drawFieldsAndButton(3, "Task 25", &t25Field, t25Values);
-    if (t25Field != 3) return;
+static void drawSimpleFloatOutput(bool showResult, float result) {
+    if (!showResult) {
+        drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, WAITING_FOR_INPUT, colorGray());
+        return;
+    }
 
     char resultText[15];
-    SDL_snprintf(resultText, sizeof resultText, "Result: %f", t25(t25Values[0], t25Values[1], t25Values[2]));
-    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t19Field == 4 ? colorWhite() : colorGray());
+    SDL_snprintf(resultText, sizeof resultText, "Result: %f", result);
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, colorWhite());
+}
+
+static void drawT25Page(void) {
+    drawFieldsAndButton(3, "Task 25", &t25Field, t25Values, &defaultLabelSupplier);
+    drawSimpleFloatOutput(t25Field == 3, t25(t25Values[0], t25Values[1], t25Values[2]));
+}
+
+static char t28LabelSupplier(int i) { return (char) ('X' + i); }
+
+static void drawT28Page(void) {
+    drawFieldsAndButton(2, "Task 28", &t28Field, t28Values, &t28LabelSupplier);
+    drawSimpleFloatOutput(t28Field == 2, t28(t28Values[0], t28Values[1]));
+}
+
+static char t3LabelSupplier(int i) { return (char) (i < 3 ? ('A' + i) : ('X' + i - 3)); }
+
+static void drawT3Page(void) {
+    drawFieldsAndButton(5, "Task 3", &t3Field, t3Values, &t3LabelSupplier);
+    const bool showResult = t3Field == 5;
+
+    const char* resultText = showResult
+        ? t3(t3Values[0], t3Values[1], t3Values[2], t3Values[3], t3Values[4]) ? "Result: true" : "Result: false"
+        : WAITING_FOR_INPUT;
+
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, showResult ? colorWhite() : colorGray());
 }
 
 static void drawPage(void) {
@@ -285,8 +324,10 @@ static void drawPage(void) {
             drawT25Page();
             break;
         case PAGE_T28:
+            drawT28Page();
             break;
         case PAGE_T3:
+            drawT3Page();
             break;
     }
 
