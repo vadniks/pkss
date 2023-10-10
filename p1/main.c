@@ -147,7 +147,6 @@ static void drawT19(void) {
 
     if (t19Field >= 0 && t19Field < 4)
         t19Values[t19Field] = (float) SDL_atof(gBuffer);
-    SDL_Log("%s", gBuffer);
 
     for (int i = 1; i <= 4; i++) {
         const int valueTextSize = 1 << 5;
@@ -170,7 +169,17 @@ static void drawT19(void) {
         gMouseClicked = false;
     }
 
-    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Result: ", t19Field == 4 ? colorWhite() : colorGray());
+    const int resultTextSize = 1 << 5;
+    char* resultText = SDL_malloc(resultTextSize);
+
+    if (t19Field == 4)
+        SDL_snprintf(resultText, resultTextSize, "Result: %s",
+             t19(t19Values[0], t19Values[1], t19Values[2], t19Values[3]) ? "true" : "false");
+    else
+        SDL_memcpy(resultText, "Result: waiting for input...", resultTextSize);
+
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t19Field == 4 ? colorWhite() : colorGray());
+    SDL_free(resultText);
 }
 
 static void drawPage(void) {
