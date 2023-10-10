@@ -147,6 +147,7 @@ static void drawT19(void) {
 
     if (t19Field >= 0 && t19Field < 4)
         t19Values[t19Field] = (float) SDL_atof(gBuffer);
+    SDL_Log("%s", gBuffer);
 
     for (int i = 1; i <= 4; i++) {
         const int valueTextSize = 1 << 5;
@@ -211,8 +212,9 @@ static void keyPressed(const SDL_Event* event) {
             // TODO
             break;
         default:
-            if ((keyCode >= SDLK_0 && keyCode <= SDLK_9)
-                || (keyCode >= SDLK_a && keyCode <= SDLK_z)
+            if ((keyCode >= SDLK_0 && keyCode <= SDLK_9
+                || keyCode >= SDLK_a && keyCode <= SDLK_z
+                || keyCode == SDLK_PERIOD)
                 && gBufferPosition < gBufferSize)
                 gBuffer[gBufferPosition++] = (char) keyCode;
             break;
