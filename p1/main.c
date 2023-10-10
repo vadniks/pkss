@@ -13,8 +13,12 @@ static bool t19(float a, float b, float c, float d)
 
 typedef enum : int {
     PAGE_ERROR = 0,
-    PAGE_MAIN = 1,
-    PAGE_T19 = 2
+    PAGE_MAIN = -1,
+    PAGE_T19 = 19,
+    PAGE_T22 = 22,
+    PAGE_T25 = 25,
+    PAGE_T28 = 28,
+    PAGE_T3 = 3
 } Pages;
 
 static Pages gPage = PAGE_MAIN;
@@ -30,6 +34,10 @@ static char gBuffer[gBufferSize];
 static int gBufferPosition = 0;
 
 static int gTaskNumber = 0;
+
+static int gMouseX = 0, gMouseY = 0;
+
+static const int TEXT_HEIGHT = 25;
 
 static SDL_Texture* makeTextTexture(const char* text, SDL_Color color) {
     SDL_Surface* surface = TTF_RenderText_Solid(gFont, text, color);
@@ -54,11 +62,16 @@ static inline SDL_Rect rectOf(int x, int y, int w, int h) { return (SDL_Rect) {x
 
 static void drawCenteredXText(int y, const char* text, SDL_Color color) {
     const int length = (int) SDL_strlen(text) * 10;
-    drawText(rectOf(gWidth / 2 - length / 2, y, length, 25), text, color);
+    drawText(rectOf(gWidth / 2 - length / 2, y, length, TEXT_HEIGHT), text, color);
+}
+
+static void drawTextAutoSized(int x, int y, const char* text, SDL_Color color) {
+    const int length = (int) SDL_strlen(text) * 10;
+    drawText(rectOf(x, y, length, TEXT_HEIGHT), text, color);
 }
 
 static inline void drawCenteredXYText(const char* text, SDL_Color color)
-{ drawCenteredXText(gHeight / 2 - 25 / 2, text, color); }
+{ drawCenteredXText(gHeight / 2 - TEXT_HEIGHT / 2, text, color); }
 
 static void drawMainPage(void) {
     drawCenteredXText(10, "Main page", colorWhite());
@@ -71,6 +84,26 @@ static void drawMainPage(void) {
     SDL_itoa(gTaskNumber, taskNumberText + SDL_strlen(taskNumberText), 10);
 
     drawCenteredXYText(taskNumberText, colorGray());
+
+    if (gTaskNumber == PAGE_T19
+        || gTaskNumber == PAGE_T22
+        || gTaskNumber == PAGE_T25
+        || gTaskNumber == PAGE_T28
+        || gTaskNumber == PAGE_T3)
+        gPage = (Pages) gTaskNumber;
+}
+
+static void drawT19(void) {
+    drawCenteredXText(10, "Task 19", colorWhite());
+    drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
+
+    for (int i = 1; i <= 4; i++) {
+        char valueText[10] = {0};
+        SDL_snprintf(valueText, 10, "Value %c: ", 'A' + i - 1);
+        drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, colorGray());
+    }
+
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Result: ", colorGray());
 }
 
 static void drawPage(void) {
@@ -84,7 +117,9 @@ static void drawPage(void) {
             drawMainPage();
             break;
         case PAGE_T19:
-
+            drawT19();
+            break;
+        case PAGE_ERROR:
             break;
     }
 
@@ -101,11 +136,9 @@ static void keyPressed(const SDL_Event* event) {
             // TODO
             break;
         default:
-            if (
-                (keyCode >= SDLK_0 && keyCode <= SDLK_9)
+            if ((keyCode >= SDLK_0 && keyCode <= SDLK_9)
                 || (keyCode >= SDLK_a && keyCode <= SDLK_z)
-                && gBufferPosition < gBufferSize
-            )
+                && gBufferPosition < gBufferSize)
                 gBuffer[gBufferPosition++] = (char) keyCode;
             break;
     }
@@ -141,8 +174,14 @@ int main(void) {
 
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
-                case SDL_QUIT: goto end;
-                case SDL_KEYDOWN: keyPressed(&event); break;
+                case SDL_QUIT:
+                    goto end;
+                case SDL_KEYDOWN:
+                    keyPressed(&event);
+                    break;
+                case SDL_MOUSEBUTTONUP:
+                    SDL_GetMouseState(&gMouseX, &gMouseY);
+                    break;
                 default: break;
             }
         }
