@@ -7,7 +7,11 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
-#define nullable _Nullable
+#ifdef __clang__
+#   define nullable _Nullable
+#elif
+#   define nullable
+#endif
 
 static bool t19(float a, float b, float c, float d)
 { return a * b <= c * d && a <= c && b <= d; }
@@ -69,11 +73,13 @@ static bool gMouseClicked = false;
 
 static const int TEXT_HEIGHT = 25, BUTTON_INNER_MARGIN = 5, BUTTON_SIZE = TEXT_HEIGHT + BUTTON_INNER_MARGIN * 2;
 
-static float t19Values[4] = {0};
-static int t19Field = 0;
+#define VALUES_AND_FIELD(n, c) \
+    static float t ## n ## Values[c] = {0}; \
+    static int t ## n ## Field = 0;
 
-static float t22Values[4] = {0};
-static int t22Field = 0;
+VALUES_AND_FIELD(19, 4)
+VALUES_AND_FIELD(22, 4)
+VALUES_AND_FIELD(25, 3)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -173,14 +179,14 @@ static void drawMainPage(void) {
         drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
-static void drawFourFieldsAndButton(const char* title, int* chosenField, float* values) {
+static void drawFieldsAndButton(int fields, const char* title, int* chosenField, float* values) { // TODO: add 'back' button which returns to main page
     drawCenteredXText(10, title, colorWhite());
     drawCenteredXText(10 * 2 + TEXT_HEIGHT, "Enter values:", colorGray());
 
-    if (*chosenField >= 0 && *chosenField < 4)
+    if (*chosenField >= 0 && *chosenField < fields)
         values[*chosenField] = (float) SDL_atof(gBuffer);
 
-    for (int i = 1; i <= 4; i++) {
+    for (int i = 1; i <= fields; i++) {
         const int valueTextSize = 1 << 5;
         char valueText[valueTextSize] = {0};
         SDL_snprintf(valueText, valueTextSize, "Value %c: %f", 'A' + i - 1, values[i - 1]);
@@ -196,14 +202,14 @@ static void drawFourFieldsAndButton(const char* title, int* chosenField, float* 
     drawButton(buttonRect, "Next", withinButton ? colorWhite() : colorGray());
 
     if (gMouseClicked && withinButton) {
-        *chosenField < 4 ? (*chosenField)++ : (*chosenField = 0);
+        *chosenField < fields ? (*chosenField)++ : (*chosenField = 0);
         clearBuffer();
         gMouseClicked = false;
     }
 }
 
 static void drawT19Page(void) {
-    drawFourFieldsAndButton("Task 19", &t19Field, t19Values);
+    drawFieldsAndButton(4, "Task 19", &t19Field, t19Values);
     const int resultTextSize = 1 << 5;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -218,7 +224,7 @@ static void drawT19Page(void) {
 }
 
 static void drawT22Page(void) {
-    drawFourFieldsAndButton("Task 22", &t22Field, t22Values);
+    drawFieldsAndButton(4, "Task 22", &t22Field, t22Values);
     const int resultTextSize = 255;
     char* resultText = SDL_calloc(resultTextSize, 1);
 
@@ -249,6 +255,15 @@ static void drawT22Page(void) {
     SDL_free(resultText);
 }
 
+static void drawT25Page(void) {
+    drawFieldsAndButton(3, "Task 25", &t25Field, t25Values);
+    if (t25Field != 3) return;
+
+    char resultText[15];
+    SDL_snprintf(resultText, sizeof resultText, "Result: %f", t25(t25Values[0], t25Values[1], t25Values[2]));
+    drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, resultText, t19Field == 4 ? colorWhite() : colorGray());
+}
+
 static void drawPage(void) {
     setRendererDrawColor(colorDefault());
     SDL_RenderClear(gRenderer);
@@ -267,6 +282,7 @@ static void drawPage(void) {
             drawT22Page();
             break;
         case PAGE_T25:
+            drawT25Page();
             break;
         case PAGE_T28:
             break;
