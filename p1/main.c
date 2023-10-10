@@ -29,6 +29,8 @@ static const int gBufferSize = 255;
 static char gBuffer[gBufferSize];
 static int gBufferPosition = 0;
 
+static int gTaskNumber = 0;
+
 static SDL_Texture* makeTextTexture(const char* text, SDL_Color color) {
     SDL_Surface* surface = TTF_RenderText_Solid(gFont, text, color);
     SDL_Texture* texture = SDL_CreateTextureFromSurface(gRenderer, surface);
@@ -43,19 +45,32 @@ static void drawText(SDL_Rect rect, const char* text, SDL_Color color) {
 }
 
 static inline SDL_Color colorWhite(void) { return (SDL_Color) {255, 255, 255, 200}; }
+static inline SDL_Color colorGray(void) { return (SDL_Color) {255, 255, 255, 100}; }
 static inline SDL_Color colorBlack(void) { return (SDL_Color) {0, 0, 0, 0}; }
 static inline SDL_Color colorDefault(void) { return (SDL_Color) {30, 34, 41, 0}; }
 static inline SDL_Color colorRed(void) { return (SDL_Color) {255, 75, 75, 0}; }
 
 static inline SDL_Rect rectOf(int x, int y, int w, int h) { return (SDL_Rect) {x, y, w, h}; }
 
-static void drawCenteredText(int y, const char* text, SDL_Color color) {
+static void drawCenteredXText(int y, const char* text, SDL_Color color) {
     const int length = (int) SDL_strlen(text) * 10;
     drawText(rectOf(gWidth / 2 - length / 2, y, length, 25), text, color);
 }
 
+static inline void drawCenteredXYText(const char* text, SDL_Color color)
+{ drawCenteredXText(gHeight / 2 - 25 / 2, text, color); }
+
 static void drawMainPage(void) {
-    drawCenteredText(10, "Main page", colorWhite());
+    drawCenteredXText(10, "Main page", colorWhite());
+
+    gTaskNumber = SDL_atoi(gBuffer);
+
+    const int taskNumberTextSize = 255;
+    char taskNumberText[taskNumberTextSize] = {0};
+    SDL_strlcat(taskNumberText, "Enter task number via keyboard: ", 33);
+    SDL_itoa(gTaskNumber, taskNumberText + SDL_strlen(taskNumberText), 10);
+
+    drawCenteredXYText(taskNumberText, colorGray());
 }
 
 static void drawPage(void) {
@@ -68,6 +83,9 @@ static void drawPage(void) {
         case PAGE_MAIN:
             drawMainPage();
             break;
+        case PAGE_T19:
+
+            break;
     }
 
     SDL_RenderPresent(gRenderer);
@@ -77,8 +95,7 @@ static void keyPressed(const SDL_Event* event) {
     const SDL_KeyCode keyCode = event->key.keysym.sym;
     switch (keyCode) {
         case SDLK_BACKSPACE:
-            if (gBufferPosition > 0)
-                gBuffer[gBufferPosition--] = 0;
+            gBuffer[gBufferPosition > 0 ? gBufferPosition-- : 0] = 0;
             break;
         case SDLK_RETURN:
             // TODO
@@ -117,7 +134,7 @@ int main(void) {
 
     SDL_GetRendererOutputSize(gRenderer, &gWidth, &gHeight);
 
-    gFont = TTF_OpenFont("RobotoMono-Regular.ttf", 1000);
+    gFont = TTF_OpenFont("RobotoMono-Regular.ttf", 100);
 
     while (true) {
         SDL_Event event;
