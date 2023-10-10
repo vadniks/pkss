@@ -35,9 +35,12 @@ static int gBufferPosition = 0;
 
 static int gTaskNumber = 0;
 
-static int gMouseX = 0, gMouseY = 0;
+static int gMouseHoverX = 0, gMouseHoverY = 0, gMouseClickX = 0, gMouseClickY = 0;
+static bool gMouseClicked = false;
 
-static const int TEXT_HEIGHT = 25;
+static const int TEXT_HEIGHT = 25, BUTTON_INNER_MARGIN = 5, BUTTON_SIZE = TEXT_HEIGHT + BUTTON_INNER_MARGIN * 2;
+
+static char* t19Fields[4] = {NULL, NULL, NULL, NULL};
 
 static SDL_Texture* makeTextTexture(const char* text, SDL_Color color) {
     SDL_Surface* surface = TTF_RenderText_Solid(gFont, text, color);
@@ -73,6 +76,36 @@ static void drawTextAutoSized(int x, int y, const char* text, SDL_Color color) {
 static inline void drawCenteredXYText(const char* text, SDL_Color color)
 { drawCenteredXText(gHeight / 2 - TEXT_HEIGHT / 2, text, color); }
 
+static inline void setRendererDrawColor(SDL_Color color)
+{ SDL_SetRenderDrawColor(gRenderer, color.r, color.g, color.b, color.a); }
+
+static SDL_Color getRendererDrawColor(void) {
+    SDL_Color color;
+    SDL_GetRenderDrawColor(gRenderer, &(color.r), &(color.g), &(color.b), &(color.a));
+    return color;
+}
+
+static void drawButton(SDL_Rect rect, const char* text, SDL_Color color) {
+    if (rect.x < 10 || rect.y < 10) abort();
+
+    const SDL_Color previousColor = getRendererDrawColor();
+    setRendererDrawColor(color);
+
+    SDL_RenderDrawRect(gRenderer, &rect);
+
+    const SDL_Rect innerRect = {
+        rect.x + BUTTON_INNER_MARGIN,
+        rect.y + BUTTON_INNER_MARGIN,
+        rect.w - BUTTON_INNER_MARGIN * 2,
+        rect.h - BUTTON_INNER_MARGIN * 2
+    };
+    drawText(innerRect, text, color);
+
+    setRendererDrawColor(previousColor);
+}
+
+static void drawErrorPage(void) { drawCenteredXYText("An error has occurred!", colorRed()); }
+
 static void drawMainPage(void) {
     drawCenteredXText(10, "Main page", colorWhite());
 
@@ -91,6 +124,8 @@ static void drawMainPage(void) {
         || gTaskNumber == PAGE_T28
         || gTaskNumber == PAGE_T3)
         gPage = (Pages) gTaskNumber;
+    else
+        drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Unknown task number", colorRed());
 }
 
 static void drawT19(void) {
@@ -103,23 +138,43 @@ static void drawT19(void) {
         drawTextAutoSized(10, 10 * (2 + i) + TEXT_HEIGHT * (1 + i), valueText, colorGray());
     }
 
+    const int buttonWidth = 100;
+    SDL_Rect buttonRect = {gWidth / 2 - buttonWidth / 2, gHeight - 10 * 3 - BUTTON_SIZE, 100, TEXT_HEIGHT};
+
+    const bool withinButton = gMouseHoverX >= buttonRect.x && gMouseHoverX <= buttonRect.x + buttonRect.w
+        && gMouseHoverY >= buttonRect.y && gMouseHoverY <= buttonRect.y + buttonRect.h;
+
+    drawButton(buttonRect, "Next", withinButton ? colorWhite() : colorGray());
+
+    if (gMouseClicked && withinButton) {
+        SDL_Log("aaa");
+        gMouseClicked = false;
+    }
+
     drawCenteredXText(gHeight - 10 - TEXT_HEIGHT, "Result: ", colorGray());
 }
 
 static void drawPage(void) {
-    SDL_Color color = colorDefault();
-    SDL_SetRenderDrawColor(gRenderer, color.r, color.g, color.b, color.a);
-
+    setRendererDrawColor(colorDefault());
     SDL_RenderClear(gRenderer);
 
     switch (gPage) {
+        case PAGE_ERROR:
+            drawErrorPage();
+            break;
         case PAGE_MAIN:
             drawMainPage();
             break;
         case PAGE_T19:
             drawT19();
             break;
-        case PAGE_ERROR:
+        case PAGE_T22:
+            break;
+        case PAGE_T25:
+            break;
+        case PAGE_T28:
+            break;
+        case PAGE_T3:
             break;
     }
 
@@ -179,8 +234,15 @@ int main(void) {
                 case SDL_KEYDOWN:
                     keyPressed(&event);
                     break;
+                case SDL_MOUSEMOTION:
+                    SDL_GetMouseState(&gMouseHoverX, &gMouseHoverY);
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                    gMouseClicked = true;
+                    break;
                 case SDL_MOUSEBUTTONUP:
-                    SDL_GetMouseState(&gMouseX, &gMouseY);
+                    SDL_GetMouseState(&gMouseClickX, &gMouseClickY);
+                    gMouseClicked = false;
                     break;
                 default: break;
             }
