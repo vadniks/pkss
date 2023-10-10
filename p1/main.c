@@ -6,8 +6,26 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
 
+#define nullable _Nullable
+
 static bool t19(float a, float b, float c, float d)
 { return a * b <= c * d && a <= c && b <= d; }
+
+static void** nullable t22(float a, float b, float c, float d) {
+    float values[4] = {a, b, c, d};
+    float* values2 = NULL;
+    int size = 0;
+
+    for (int i = 0; i < 4; i++)
+        if (values[i] < 3 || values[i] > 15)
+            (values2 = SDL_realloc(values2, ++size * sizeof(float))) && (values2[size - 1] = values[i]);
+
+    void** result = SDL_malloc(2 * sizeof(void*));
+    result[0] = values2;
+    *((int*) result[1]) = size;
+
+    return result;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
