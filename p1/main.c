@@ -42,12 +42,20 @@ static void drawText(SDL_Rect rect, const char* text, SDL_Color color) {
     SDL_DestroyTexture(texture);
 }
 
-static inline SDL_Color colorWhite(void) { return (SDL_Color) {255, 255, 255, 255}; }
+static inline SDL_Color colorWhite(void) { return (SDL_Color) {255, 255, 255, 200}; }
 static inline SDL_Color colorBlack(void) { return (SDL_Color) {0, 0, 0, 0}; }
 static inline SDL_Color colorDefault(void) { return (SDL_Color) {30, 34, 41, 0}; }
+static inline SDL_Color colorRed(void) { return (SDL_Color) {255, 75, 75, 0}; }
+
+static inline SDL_Rect rectOf(int x, int y, int w, int h) { return (SDL_Rect) {x, y, w, h}; }
+
+static void drawCenteredText(int y, const char* text, SDL_Color color) {
+    const int length = (int) SDL_strlen(text) * 10;
+    drawText(rectOf(gWidth / 2 - length / 2, y, length, 25), text, color);
+}
 
 static void drawMainPage(void) {
-    drawText((SDL_Rect) {10, 10, 500, 100}, "Hello World!", colorWhite());
+    drawCenteredText(10, "Main page", colorWhite());
 }
 
 static void drawPage(void) {
@@ -109,7 +117,7 @@ int main(void) {
 
     SDL_GetRendererOutputSize(gRenderer, &gWidth, &gHeight);
 
-    gFont = TTF_OpenFont("RobotoMono-Regular.ttf", 500);
+    gFont = TTF_OpenFont("RobotoMono-Regular.ttf", 1000);
 
     while (true) {
         SDL_Event event;
