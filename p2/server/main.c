@@ -1,9 +1,5 @@
 
 #pragma clang diagnostic ignored "-Wgnu-folding-constant"
-#pragma ide diagnostic ignored "cert-msc50-cpp"
-#pragma ide diagnostic ignored "cert-msc51-cpp"
-
-// server
 
 #include <stdbool.h>
 #include <math.h>
@@ -13,33 +9,30 @@
 
 static inline float t19(float a, float b, float c) {
     return a < b
-           ? a < c ? a : c
-           : b < c ? b : c;
+        ? a < c ? a : c
+        : b < c ? b : c;
 }
 
-static inline bool t22(int a, int b, int c, int d) {
-    return a % 2 == 0 && b % 2 == 0 && c % 2 == 0 && d % 2 == 0;
-}
+static inline bool t22(int a, int b, int c, int d)
+{ return a % 2 == 0 && b % 2 == 0 && c % 2 == 0 && d % 2 == 0; }
 
 static int t25(int n) {
     const int a = (int) log2f((float) n);
     return n <= 0
-           ? -1
-           : n == (int) powf((float) 2, (float) a) ? a : -1;
+        ? -1
+        : n == (int) powf((float) 2, (float) a) ? a : -1;
 }
 
 static inline float t28(float x, float y) {
     return (2.0f * powf(x, 3.0f) - 4.0f * powf(x, 2.0f) + x + 1.0f)
-           / (9 * powf(y, 3.0f) + y + 4) + (3 * powf(y, 2.0f) + 5 * y);
+        / (9 * powf(y, 3.0f) + y + 4) + (3 * powf(y, 2.0f) + 5 * y);
 }
 
-static inline float t3f(float a, float b, float c) {
-    return (2 * a - b - sinf(c)) / (5 + c);
-}
+static inline float t3f(float a, float b, float c)
+{ return (2 * a - b - sinf(c)) / (5 + c); }
 
-static float t3(float s, float t) {
-    return t3f(t, -1 * 2 * s, 1.17f) + t3f(2.2f, t, s - t);
-}
+static float t3(float s, float t)
+{ return t3f(t, -1 * 2 * s, 1.17f) + t3f(2.2f, t, s - t); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -54,10 +47,9 @@ static _Atomic bool running = true;
 
 static SDL_mutex* mutex = NULL;
 
-static char* resolveHost(const IPaddress* ipAddress) {
-    char* copy = NULL;
-
+static char* resolveHost(const IPaddress* ipAddress) { // nullable
     SDL_LockMutex(mutex);
+    char* copy = NULL;
 
     const char* original = SDLNet_ResolveIP(ipAddress);
     if (!original) goto end;
@@ -71,8 +63,8 @@ static char* resolveHost(const IPaddress* ipAddress) {
 
         if (stop) break;
     }
-
     end:
+
     SDL_UnlockMutex(mutex);
     return copy;
 }
@@ -82,6 +74,7 @@ static void connectionProcessor(TCPsocket connection) {
     byte receiveBuffer[bufferSize] = {0}, sendBuffer[bufferSize] = {0};
 
     const IPaddress* ipAddress = SDLNet_TCP_GetPeerAddress(connection);
+    const unsigned short port = ipAddress->port;
     char* host = resolveHost(ipAddress);
 
     do {
@@ -123,7 +116,6 @@ static void connectionProcessor(TCPsocket connection) {
                 );
                 break;
             default:
-                SDL_Log("stop command received");
                 running = false;
                 goto end;
         }
@@ -131,17 +123,16 @@ static void connectionProcessor(TCPsocket connection) {
         SDL_Log("client %s:%u requested command %d", host, ipAddress->port, command);
 
         if (SDLNet_TCP_Send(connection, sendBuffer, bufferSize) != bufferSize) break;
-    } while (SDL_memcmp(receiveBuffer, (byte[bufferSize]) {0}, bufferSize));
+    } while (running && SDL_memcmp(receiveBuffer, (byte[bufferSize]) {0}, bufferSize));
     end:
-    (void) 0;
 
     SDLNet_TCP_Close(connection);
 
-    SDL_Log("disconnected client %s:%u", host, ipAddress->port);
+    SDL_Log("client %s:%u disconnected", host, port);
     SDL_free(host);
 }
 
-static long timeMillis(void) {
+static unsigned long timeMillis(void) {
     struct timespec ts;
     if (clock_gettime(CLOCK_REALTIME, &ts) != 0) abort();
     return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
@@ -156,16 +147,18 @@ int main(void) { // 19, 22, 25, 28, 3
     TCPsocket socket = SDLNet_TCP_Open(&ipAddress);
     if (!socket) abort();
 
+    mutex = SDL_CreateMutex();
+
     SDL_Log("server started");
 
     SDL_Thread** threads = NULL;
     int threadsSize = 0;
 
-    const long startMillis = timeMillis();
+    const unsigned long startMillis = timeMillis();
+    int connectionId = 0;
 
-    srand(time(NULL));
     while (running) {
-        if (timeMillis() - startMillis >= 5000) {
+        if (timeMillis() - startMillis >= 10000u) {
             SDL_Log("timeout exceeded");
             break;
         }
@@ -175,18 +168,21 @@ int main(void) { // 19, 22, 25, 28, 3
 
         const IPaddress* newIpAddress = SDLNet_TCP_GetPeerAddress(connection);
         char* host = resolveHost(newIpAddress);
-        SDL_Log("connected client %s:%u", host, newIpAddress->port);
+        SDL_Log("client %s:%u connected", host, newIpAddress->port);
         SDL_free(host);
 
         const int nameSize = 10;
         char name[nameSize] = {0};
-        for (int i = 0; i < nameSize - 1; name[i++] = (char) (rand() % 127 + 1));
+        SDL_snprintf(name, nameSize, "%d", connectionId++);
 
         threads = SDL_realloc(threads, ++threadsSize * sizeof(SDL_Thread*));
         threads[threadsSize - 1] = SDL_CreateThread((SDL_ThreadFunction) &connectionProcessor, name, connection);
     }
 
-    for (int i = 0; i < threadsSize; !threads[i++] ? abort() : SDL_WaitThread(threads[i], NULL));
+    for (int i = 0; i < threadsSize; SDL_WaitThread(threads[i++], NULL));
+    SDL_free(threads);
+
+    SDL_DestroyMutex(mutex);
 
     SDLNet_TCP_Close(socket);
     SDL_Log("server stopped");
@@ -194,6 +190,6 @@ int main(void) { // 19, 22, 25, 28, 3
     SDLNet_Quit();
     SDL_Quit();
 
-    if (SDL_GetNumAllocations() > 1) abort();
+    if (SDL_GetNumAllocations() > 0) abort();
     return EXIT_SUCCESS;
 }
