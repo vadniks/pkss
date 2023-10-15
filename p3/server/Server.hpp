@@ -27,7 +27,7 @@ public:
     Server() : mServer(this) {
         connect(&mServer, &QTcpServer::newConnection, this, &Server::newConnection);
         assert(mServer.listen(QHostAddress::LocalHost, 8080));
-        qInfo() << "Server started on " << mServer.serverAddress() << ':' << mServer.serverPort();
+        qInfo() << "Server started on" << QString("%1:%2").arg(mServer.serverAddress().toString()).arg(mServer.serverPort());
     }
 
     ~Server() override {
@@ -57,7 +57,7 @@ private:
     }
 
     static inline QString peerAddressAndPort(const QTcpSocket* socket) {
-        return QString().append(socket->peerAddress().toString()).append(':').append(socket->peerPort());
+        return QString("%1:%2").arg(socket->peerAddress().toString()).arg(socket->peerPort());
     }
 
 private slots:
@@ -67,7 +67,7 @@ private slots:
             connect(socket, &QTcpSocket::readyRead, this, [this, socket](){ socketReadyToRead(socket); });
             connect(socket, &QTcpSocket::disconnected, this, [this, socket](){ socketDisconnected(socket); });
             mSockets.insert(socket);
-            qInfo() << "connected client " << peerAddressAndPort(socket);
+            qInfo() << "connected client" << peerAddressAndPort(socket);
         }
     };
 
@@ -95,7 +95,7 @@ private slots:
                 outputJson["result"] = listToJsonArray(Tasks::t3(jsonArrayToList(inputJson["parameters"].toArray())));
                 break;
             case 0:
-                qInfo() << "received stopping signal from client " << peerAddressAndPort(socket);
+                qInfo() << "received stopping signal from client" << peerAddressAndPort(socket);
                 socket->disconnectFromHost();
                 mServer.close();
                 break;
@@ -104,7 +104,7 @@ private slots:
         }
 
         if (socket->write(QJsonDocument(outputJson).toJson()) == 0) {
-            qInfo() << "disconnecting client " << peerAddressAndPort(socket) << " in cause of write error...";
+            qInfo() << "disconnecting client" << peerAddressAndPort(socket) << " in cause of write error...";
             mSockets.remove(socket);
             socket->close();
             delete socket;
@@ -112,9 +112,9 @@ private slots:
     }
 
     void socketDisconnected(QTcpSocket* socket) {
-        qInfo() << "disconnected client " << peerAddressAndPort(socket);
+        qInfo() << "disconnected client" << peerAddressAndPort(socket);
         socket->close();
+        socket->deleteLater();
         mSockets.remove(socket);
-        delete socket;
     }
 };

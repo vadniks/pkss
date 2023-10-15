@@ -4,10 +4,12 @@ project(pkss3server)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
+
+add_compile_options(-O3)
+add_link_options(-s)
 
 file(GLOB sources CONFIGURE_DEPENDS *.cpp *.hpp)
 add_executable(${PROJECT_NAME} ${sources})

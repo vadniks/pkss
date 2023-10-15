@@ -15,16 +15,15 @@ private:
     QTcpSocket mSocket;
 
 public:
-    Client() : mSocket(nullptr) {
+    Client() : mSocket(this) {
         connect(&mSocket, &QTcpSocket::connected, this, &Client::socketConnected);
-        connect(&mSocket, &QTcpSocket::readyRead, this, &Client::socketReadyToRead);
-        connect(&mSocket, &QTcpSocket::disconnected, this, &Client::socketDisconnected);
         mSocket.connectToHost("127.0.0.1", 8080);
     }
 
 private slots:
     void socketConnected() {
         int command;
+        bool stop = false;
 
         while (true) {
             std::cout << "Enter command: ";
@@ -39,19 +38,19 @@ private slots:
                     int a;
                     std::cin >> a;
                     output["parameters"] = QJsonArray({a});
-                    } break;
+                } break;
                 case 22: {
                     std::cout << "Enter one float parameter: ";
                     float a;
                     std::cin >> a;
                     output["parameters"] = QJsonArray({a});
-                    } break;
+                } break;
                 case 25: {
                     std::cout << "Enter one float parameter: ";
                     float a;
                     std::cin >> a;
                     output["parameters"] = QJsonArray({a});
-                    } break;
+                } break;
                 case 28:
                     break;
                 case 3: {
@@ -70,50 +69,57 @@ private slots:
                     }
 
                     output["parameters"] = array;
-                    } break;
+                } break;
                 case 0:
-                    break;
+                    stop = true;
+                    [[fallthrough]];
                 default:
                     goto end;
             }
 
             if (mSocket.write(QJsonDocument(output).toJson()) == 0) {
+                qInfo() << "bb";
                 std::cout << "Disconnecting from host due to write error..." << std::endl;
                 break;
             }
 
-            const auto array = mSocket.readAll();
-            if (array.size() == 0) {
-                std::cout << "Disconnecting from host due to read error..." << std::endl;
-                break;
-            }
-
-            const auto json = QJsonDocument::fromJson(array).object();
-            switch (json["command"].toInt()) {
-                case 19: [[fallthrough]];
-                case 22: [[fallthrough]];
-                case 25:
-                    std::cout << static_cast<float>(json["result"].toDouble()) << std::endl;
-                    break;
-                case 28: [[fallthrough]];
-                case 3:
-                    std::cout << "Result: ";
-                    for (auto i : json["result"].toArray())
-                        std::cout << static_cast<float>(i.toDouble());
-                    std::cout << std::endl;
-                    break;
-                default:
-                    throw QException();
-            }
+            mSocket.waitForReadyRead();
+            socketReadyToRead();
         }
         end:
 
         mSocket.close();
-        QCoreApplication::quit();
+        if (stop)
+            QCoreApplication::quit();
     };
 
     void socketReadyToRead() {
+        const auto array = mSocket.readAll();
 
+        if (array.size() == 0) {
+            std::cout << "Disconnecting from host due to read error..." << std::endl;
+            mSocket.close();
+            QCoreApplication::quit();
+            return;
+        }
+
+        const auto json = QJsonDocument::fromJson(array).object();
+        switch (json["command"].toInt()) {
+            case 19: [[fallthrough]];
+            case 22: [[fallthrough]];
+            case 25:
+                std::cout << static_cast<float>(json["result"].toDouble()) << std::endl;
+                break;
+            case 28: [[fallthrough]];
+            case 3:
+                std::cout << "Result: ";
+                for (auto i : json["result"].toArray())
+                    std::cout << static_cast<float>(i.toDouble());
+                std::cout << std::endl;
+                break;
+            default:
+                throw QException();
+        }
     };
 
     void socketDisconnected() {
