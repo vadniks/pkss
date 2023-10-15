@@ -20,8 +20,7 @@ static inline float xLog2f(float n)
 
 static int t25(int n) {
     const int a = (int) xLog2f((float) n);
-    return n <= 0
-        ? -1
+    return n <= 0 ? -1
         : n == (int) SDL_powf((float) 2, (float) a) ? a : -1;
 }
 
@@ -33,7 +32,7 @@ static inline float t28(float x, float y) {
 static inline float t3f(float a, float b, float c)
 { return (2 * a - b - SDL_sinf(c)) / (5 + c); }
 
-static float t3(float s, float t)
+static inline float t3(float s, float t)
 { return t3f(t, -1 * 2 * s, 1.17f) + t3f(2.2f, t, s - t); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,8 +43,8 @@ typedef unsigned char byte;
 
 static _Atomic bool running = true;
 
-#define asIntPtr(x) ((int*) x)
-#define asFloatPtr(x) ((float*) x)
+static inline int* asIntPtr(void* x) { return ((int*) x); }
+static inline float* asFloatPtr(void* x) { return ((float*) x); }
 
 static SDL_mutex* mutex = NULL;
 
