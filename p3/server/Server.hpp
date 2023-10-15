@@ -73,9 +73,12 @@ private slots:
 
     void socketReadyToRead(QTcpSocket* socket) {
         const auto inputJson = QJsonDocument::fromJson(socket->readAll()).object();
-        QJsonObject outputJson;
+        const int command = inputJson["command"].toInt();
 
-        switch (inputJson["command"].toInt()) {
+        QJsonObject outputJson;
+        outputJson["command"] = command;
+
+        switch (command) {
             case 19:
                 outputJson["result"] = Tasks::t19(inputJson["parameters"].toArray()[0].toInt());
                 break;
