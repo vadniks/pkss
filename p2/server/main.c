@@ -38,7 +38,7 @@ static inline float t28(float x, float y) {
 static inline float t3(float a, float b, float c) overloadable
 { return (2 * a - b - SDL_sinf(c)) / (5 + c); }
 
-static inline float t3(float s, float t) overloadable
+static inline float t3(float s, float t) overloadable // main
 { return t3(t, -1 * 2 * s, 1.17f) + t3(2.2f, t, s - t); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,8 +95,8 @@ static void connectionProcessor(TCPsocket connection) {
             case 19:
                 *asFloatPtr(sendBuffer) = t19(
                     *asFloatPtr(receiveBuffer + 4),
-                    *asFloatPtr(receiveBuffer + 4 + 8),
-                    *asFloatPtr(receiveBuffer + 4 + 8 * 2)
+                    *asFloatPtr(receiveBuffer + 4 * 2),
+                    *asFloatPtr(receiveBuffer + 4 * 3)
                 );
                 break;
             case 22:
@@ -122,9 +122,11 @@ static void connectionProcessor(TCPsocket connection) {
                     *asFloatPtr(receiveBuffer + 4 * 2)
                 );
                 break;
-            default:
+            case 0:
                 running = false;
                 goto end;
+            default:
+                abort();
         }
 
         SDL_Log("client %s:%u requested command %d", host, ipAddress->port, command);
