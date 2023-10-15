@@ -31,11 +31,7 @@ public:
     }
 
     ~Server() override {
-        for (auto i : mSockets) {
-            i->close();
-            delete i;
-        }
-
+        assert(mSockets.empty());
         mServer.close();
         qInfo() << "Stopping server...";
         QCoreApplication::quit();
