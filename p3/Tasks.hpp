@@ -33,20 +33,20 @@ class Tasks final { public:
 
     static QList<float> t25(float a) {
         QList<float> list;
-        for (float i = -2.75f; i < 8.0f; list.push_back((4 * i - 3 * i + tanf(i)) / a), i += 0.75f);
+        for (float i = -2.75f; i < 8.0f; list.append((4 * i - 3 * i + tanf(i)) / a), i += 0.75f);
         return list;
     }
 
     static QList<float> t28() {
         QList<float> list;
-        for (float i = 5; i >= -12; list.push_back(sinf(i) - 5.0f * cosf(i - 2.0f)), i -= 1.2f);
+        for (float i = 5; i >= -12; list.append(sinf(i) - 5.0f * cosf(i - 2.0f)), i -= 1.2f);
         return list;
     }
 
     static QList<float> t3(const QList<float>& input) {
         QList<float> output;
         for (float i : input)
-            output.push_back(fabsf(i));
+            output.append(fabsf(i));
         return output;
     }
 };
