@@ -18,9 +18,9 @@ typedef unsigned char byte;
 static inline int* asIntPtr(void* x) { return ((int*) x); }
 static inline float* asFloatPtr(void* x) { return ((float*) x); }
 
-static inline void floatPrinter(const void* a) { printf("Result: %f\n", *((const float*) a)); }
-static inline void intPrinter(const void* a) { printf("Result: %d\n", *((const int*) a)); }
-static inline void boolPrinter(const void* a) { printf("Result: %s\n", *((const bool*) a) ? "true" : "false"); }
+static void floatPrinter(const void* a) { printf("Result: %f\n", *((const float*) a)); }
+static void intPrinter(const void* a) { printf("Result: %d\n", *((const int*) a)); }
+static void boolPrinter(const void* a) { printf("Result: %s\n", *((const bool*) a) ? "true" : "false"); }
 
 int main(void) {
     SDL_Init(0);
@@ -71,7 +71,7 @@ int main(void) {
                 printer = &boolPrinter;
                 } break;
             case 25: {
-                printer("enter 1 int argument: ");
+                printf("enter 1 int argument: ");
                 int a;
                 scanf("%d", &a);
 
@@ -81,7 +81,7 @@ int main(void) {
                 } break;
             case 28: __attribute__((fallthrough));
             case 3:
-                printer("enter 2 float argument: ");
+                printf("enter 2 float argument: ");
                 float a, b;
                 scanf("%f %f", &a, &b);
 
@@ -93,7 +93,7 @@ int main(void) {
             case 0:
                 break;
             default:
-                abort();
+                goto end;
         }
 
         if (SDLNet_TCP_Send(socket, sendBuffer, bufferSize) != bufferSize) goto end;

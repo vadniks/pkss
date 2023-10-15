@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <time.h>
+#include <signal.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_net.h>
 
@@ -124,9 +125,10 @@ static void connectionProcessor(TCPsocket connection) {
                 break;
             case 0:
                 running = false;
+                SDL_Log("stop command received from client %s:%u", host, ipAddress->port);
                 goto end;
             default:
-                abort();
+                continue;
         }
 
         SDL_Log("client %s:%u requested command %d", host, ipAddress->port, command);
@@ -147,8 +149,22 @@ static unsigned long timeMillis(void) {
     return ts.tv_sec * 1000 + ts.tv_nsec / 1000000;
 }
 
+static unsigned timerCallback(__attribute_maybe_unused__ unsigned _, const void* parameter) {
+    if (!running) return 0;
+    SDL_Log("\tClients count: %d", *((const int*) parameter));
+    return running ? 1000 : 0;
+}
+
+static void signalHandler(int signal) {
+    SDL_Log("received stopping signal (%d)", signal);
+    running = false;
+}
+
 int main(void) { // 19, 22, 25, 28, 3
-    SDL_Init(0);
+    signal(SIGTERM, &signalHandler);
+    signal(SIGINT, &signalHandler);
+
+    SDL_Init(SDL_INIT_TIMER);
     SDLNet_Init();
 
     IPaddress ipAddress = {INADDR_NONE, SDL_Swap16(8080)};
@@ -160,7 +176,9 @@ int main(void) { // 19, 22, 25, 28, 3
     SDL_Log("server started");
 
     SDL_Thread** threads = NULL;
-    int threadsSize = 0;
+    _Atomic int threadsSize = 0;
+
+    const SDL_TimerID timerId = SDL_AddTimer(1000, (SDL_TimerCallback) &timerCallback, &threadsSize);
 
     const unsigned long startMillis = timeMillis();
     int connectionId = 0;
@@ -189,6 +207,8 @@ int main(void) { // 19, 22, 25, 28, 3
 
     for (int i = 0; i < threadsSize; SDL_WaitThread(threads[i++], NULL));
     SDL_free(threads);
+
+    SDL_RemoveTimer(timerId);
 
     SDL_DestroyMutex(mutex);
 
