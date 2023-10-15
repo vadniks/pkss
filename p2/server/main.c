@@ -2,7 +2,6 @@
 #pragma clang diagnostic ignored "-Wgnu-folding-constant"
 
 #include <stdbool.h>
-#include <math.h>
 #include <time.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_net.h>
@@ -16,20 +15,23 @@ static inline float t19(float a, float b, float c) {
 static inline bool t22(int a, int b, int c, int d)
 { return a % 2 == 0 && b % 2 == 0 && c % 2 == 0 && d % 2 == 0; }
 
+static inline float xLog2f(float n)
+{ return SDL_logf(n) / SDL_logf(2); }
+
 static int t25(int n) {
-    const int a = (int) log2f((float) n);
+    const int a = (int) xLog2f((float) n);
     return n <= 0
         ? -1
-        : n == (int) powf((float) 2, (float) a) ? a : -1;
+        : n == (int) SDL_powf((float) 2, (float) a) ? a : -1;
 }
 
 static inline float t28(float x, float y) {
-    return (2.0f * powf(x, 3.0f) - 4.0f * powf(x, 2.0f) + x + 1.0f)
-        / (9 * powf(y, 3.0f) + y + 4) + (3 * powf(y, 2.0f) + 5 * y);
+    return (2.0f * SDL_powf(x, 3.0f) - 4.0f * SDL_powf(x, 2.0f) + x + 1.0f)
+        / (9 * SDL_powf(y, 3.0f) + y + 4) + (3 * SDL_powf(y, 2.0f) + 5 * y);
 }
 
 static inline float t3f(float a, float b, float c)
-{ return (2 * a - b - sinf(c)) / (5 + c); }
+{ return (2 * a - b - SDL_sinf(c)) / (5 + c); }
 
 static float t3(float s, float t)
 { return t3f(t, -1 * 2 * s, 1.17f) + t3f(2.2f, t, s - t); }
@@ -142,8 +144,7 @@ int main(void) { // 19, 22, 25, 28, 3
     SDL_Init(0);
     SDLNet_Init();
 
-    IPaddress ipAddress;
-    SDLNet_ResolveHost(&ipAddress, "255.255.255.255", 8080);
+    IPaddress ipAddress = {INADDR_NONE, SDL_Swap16(8080)};
     TCPsocket socket = SDLNet_TCP_Open(&ipAddress);
     if (!socket) abort();
 
