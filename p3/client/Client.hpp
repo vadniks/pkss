@@ -23,9 +23,8 @@ public:
 private slots:
     void socketConnected() {
         int command;
-        bool stop = false;
 
-        while (true) {
+        while (mSocket.isOpen()) {
             std::cout << "Enter command: ";
             std::cin >> command;
 
@@ -64,21 +63,19 @@ private slots:
                     for (int i = 0; i < count; i++) {
                         float a;
                         std::cin >> a;
-                        if (a < 0) break;
                         array.append(a);
+                        if (a < 0) break;
                     }
 
                     output["parameters"] = array;
                 } break;
                 case 0:
-                    stop = true;
-                    [[fallthrough]];
+                    break;
                 default:
                     goto end;
             }
 
             if (mSocket.write(QJsonDocument(output).toJson()) == 0) {
-                qInfo() << "bb";
                 std::cout << "Disconnecting from host due to write error..." << std::endl;
                 break;
             }
@@ -89,15 +86,14 @@ private slots:
         end:
 
         mSocket.close();
-        if (stop)
-            QCoreApplication::quit();
+        QCoreApplication::quit();
     };
 
     void socketReadyToRead() {
         const auto array = mSocket.readAll();
 
         if (array.size() == 0) {
-            std::cout << "Disconnecting from host due to read error..." << std::endl;
+            std::cout << "Disconnected" << std::endl;
             mSocket.close();
             QCoreApplication::quit();
             return;
@@ -106,24 +102,19 @@ private slots:
         const auto json = QJsonDocument::fromJson(array).object();
         switch (json["command"].toInt()) {
             case 19: [[fallthrough]];
-            case 22: [[fallthrough]];
-            case 25:
-                std::cout << static_cast<float>(json["result"].toDouble()) << std::endl;
+            case 22:
+                std::cout << "Result: " << static_cast<float>(json["result"].toDouble()) << std::endl;
                 break;
+            case 25: [[fallthrough]];
             case 28: [[fallthrough]];
             case 3:
                 std::cout << "Result: ";
                 for (auto i : json["result"].toArray())
-                    std::cout << static_cast<float>(i.toDouble());
+                    std::cout << static_cast<float>(i.toDouble()) << ' ';
                 std::cout << std::endl;
                 break;
             default:
                 throw QException();
         }
-    };
-
-    void socketDisconnected() {
-        mSocket.close();
-        QCoreApplication::quit();
     }
 };

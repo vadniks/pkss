@@ -77,6 +77,7 @@ private slots:
 
         QJsonObject outputJson;
         outputJson["command"] = command;
+        qInfo() << "requested command" << command << "by client" << peerAddressAndPort(socket);
 
         switch (command) {
             case 19:
@@ -95,10 +96,12 @@ private slots:
                 outputJson["result"] = listToJsonArray(Tasks::t3(jsonArrayToList(inputJson["parameters"].toArray())));
                 break;
             case 0:
-                qInfo() << "received stopping signal from client" << peerAddressAndPort(socket);
+                qInfo() << "stopping by client" << peerAddressAndPort(socket) << "...";
                 socket->disconnectFromHost();
+                socket->deleteLater();
                 mServer.close();
-                break;
+                QCoreApplication::quit();
+                return;
             default:
                 break;
         }

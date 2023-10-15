@@ -8,7 +8,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 add_compile_options(-O3)
-#add_link_options(-s)
+add_link_options(-s)
 
 file(GLOB sources CONFIGURE_DEPENDS *.cpp *.hpp)
 add_executable(${PROJECT_NAME} ${sources})
