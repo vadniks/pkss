@@ -6,6 +6,12 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_net.h>
 
+#if !defined(__clang__) || !defined(__LITTLE_ENDIAN__) || __STDC_VERSION__ < 201112L
+#   error "Unsupported configuration"
+#endif
+
+#define overloadable __attribute__((overloadable))
+
 static inline float t19(float a, float b, float c) {
     return a < b
         ? a < c ? a : c
@@ -29,11 +35,11 @@ static inline float t28(float x, float y) {
         / (9 * SDL_powf(y, 3.0f) + y + 4) + (3 * SDL_powf(y, 2.0f) + 5 * y);
 }
 
-static inline float t3f(float a, float b, float c)
+static inline float t3(float a, float b, float c) overloadable
 { return (2 * a - b - SDL_sinf(c)) / (5 + c); }
 
-static inline float t3(float s, float t)
-{ return t3f(t, -1 * 2 * s, 1.17f) + t3f(2.2f, t, s - t); }
+static inline float t3(float s, float t) overloadable
+{ return t3(t, -1 * 2 * s, 1.17f) + t3(2.2f, t, s - t); }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -48,7 +54,7 @@ static inline float* asFloatPtr(void* x) { return ((float*) x); }
 
 static SDL_mutex* mutex = NULL;
 
-static char* resolveHost(const IPaddress* ipAddress) { // nullable
+static char* _Nullable resolveHost(const IPaddress* ipAddress) { // nullable
     SDL_LockMutex(mutex);
     char* copy = NULL;
 
