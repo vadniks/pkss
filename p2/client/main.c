@@ -80,7 +80,7 @@ int main(void) {
                 printer = &intPrinter;
                 } break;
             case 28: __attribute__((fallthrough));
-            case 3:
+            case 3: {
                 printf("enter 2 float argument: ");
                 float a, b;
                 scanf("%f %f", &a, &b);
@@ -89,7 +89,7 @@ int main(void) {
                 *asFloatPtr(sendBuffer + 4 * 2) = b;
 
                 printer = &floatPrinter;
-                break;
+                } break;
             case 0:
                 break;
             default:
